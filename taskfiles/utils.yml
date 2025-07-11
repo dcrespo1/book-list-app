@@ -10,7 +10,7 @@ tasks:
     dotenv:
       - .env.local
     cmds:
-      - docker compose up -d
+      - docker compose up --build -d
   clear-utils:
     desc: "Stop Database and clear everything"
     dir: utils
@@ -18,4 +18,4 @@ tasks:
       - .env.local
     cmds:
       - docker compose down -v
-      - rm -rf ../utils/_data
+      - sudo rm -rf ../utils/_data

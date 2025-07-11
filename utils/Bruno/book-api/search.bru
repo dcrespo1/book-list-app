@@ -1,0 +1,15 @@
+meta {
+  name: /search
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/search?q=the+way+of+kings
+  body: none
+  auth: inherit
+}
+
+params:query {
+  q: the+way+of+kings
+}
