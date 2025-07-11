@@ -5,12 +5,3 @@ includes:
 
 env:
   ENV: local
-
-tasks:
-  run-utils:
-    desc: Start Database
-    dir: utils
-    dotenv:
-      - .env.local
-    cmds:
-      - docker compose up -d

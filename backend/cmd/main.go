@@ -2,15 +2,12 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/dcrespo1/book-list-app/handlers"
 	"github.com/dcrespo1/book-list-app/pkg/database" // Update with your actual module path
-
-	"github.com/dcrespo1/book-list-app/api"
 
 	_ "github.com/lib/pq" // PostgreSQL driver
 )
@@ -38,40 +35,15 @@ func main() {
 		Queries: dbQueries,
 	}
 
+	BookHandler := handlers.BookHandler{}
+
 	// HTTP routes
-	http.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
-		query := r.URL.Query().Get("q")
-		if query == "" {
-			http.Error(w, "Missing query parameter 'q'", http.StatusBadRequest)
-			return
-		}
-
-		books, err := api.SearchBooks(query)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(books)
+    http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("Welcome to the Book List App API!"))
 	})
 
-	http.HandleFunc("/details", func(w http.ResponseWriter, r *http.Request) {
-		workID := r.URL.Query().Get("id")
-		if workID == "" {
-			http.Error(w, "Missing query parameter 'id'", http.StatusBadRequest)
-			return
-		}
-
-		details, err := api.GetBookDetails(workID)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(details)
-	})
+	http.HandleFunc("/search", BookHandler.Search)
+	http.HandleFunc("/details", BookHandler.Details)
 
 	http.HandleFunc("/readlist/add", ReadlistHandler.AddToReadlist)
 	http.HandleFunc("/readlist", ReadlistHandler.GetReadlist)
