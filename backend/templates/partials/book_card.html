@@ -1,0 +1,41 @@
+{{ define "partials/book_card.html" }}
+<div class="book-result border-b pb-4" id="book-{{ .WorkID }}">
+  <h2 class="text-xl font-bold">{{ .Title }}</h2>
+
+  <p><strong>Authors:</strong> {{ range $i, $author := .Authors }}{{ if $i }}, {{ end }}{{ $author }}{{ end }}</p>
+
+  {{ if .Subjects }}
+  <p><strong>Subjects:</strong> {{ range $i, $subject := .Subjects }}{{ if $i }}, {{ end }}{{ $subject }}{{ end }}</p>
+  {{ end }} {{ if .PublishYear }}
+  <p><strong>First Published:</strong> {{ .PublishYear }}</p>
+  {{ end }} {{ if .Description }}
+  <p><strong>Description:</strong> {{ .Description }}</p>
+  {{ end }} {{ if .CoverArtURL }}
+  <div class="my-2">
+    <img src="{{ .CoverArtURL }}" alt="Cover for {{ .Title }}" class="max-w-[200px]" />
+  </div>
+  {{ end }}
+
+  <p><strong>Work ID:</strong> {{ .WorkID }}</p>
+
+  {{ if .ShowDeleteButton }}
+  <button
+    class="mt-2 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+    hx-delete="/readlist/delete?id={{ .ID }}"
+    hx-target="#readlist-container"
+    hx-swap="outerHTML"
+  >
+    Delete
+  </button>
+  {{ else }}
+  <button
+    class="mt-2 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+    hx-get="/details?id={{ .WorkID }}"
+    hx-target="#book-{{ .WorkID }}"
+    hx-swap="outerHTML"
+  >
+    More Details
+  </button>
+  {{ end }}
+</div>
+{{ end }}

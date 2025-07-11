@@ -1,0 +1,7 @@
+{{ define "partials/book_list.html" }}
+<div id="readlist-container" class="space-y-8">
+  {{ range . }} {{ template "partials/book_card.html" . }} {{ else }}
+  <p>No books in your list.</p>
+  {{ end }}
+</div>
+{{ end }}

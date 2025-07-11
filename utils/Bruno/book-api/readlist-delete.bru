@@ -1,0 +1,15 @@
+meta {
+  name: /readlist/delete
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{base_url}}/readlist/delete?id=2
+  body: none
+  auth: inherit
+}
+
+params:query {
+  id: 2
+}

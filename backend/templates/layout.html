@@ -1,0 +1,17 @@
+{{ define "layout.html" }}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Book List</title>
+    <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+    <script src="/static/htmx.min.js"></script>
+    <script>
+      htmx.logger = console.log;
+    </script>
+  </head>
+  <body>
+    {{ block "content" . }}{{ end }}
+  </body>
+</html>
+{{ end }}

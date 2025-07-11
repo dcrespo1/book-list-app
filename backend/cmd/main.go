@@ -2,14 +2,15 @@ package main
 
 import (
 	"database/sql"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/dcrespo1/book-list-app/handlers"
-	"github.com/dcrespo1/book-list-app/pkg/database" // Update with your actual module path
+	"github.com/dcrespo1/book-list-app/pkg/database"
 
-	_ "github.com/lib/pq" // PostgreSQL driver
+	_ "github.com/lib/pq"
 )
 
 var db_user = os.Getenv("POSTGRES_USER")
@@ -19,36 +20,47 @@ var db_port = os.Getenv("POSTGRES_PORT")
 
 func main() {
 	// PostgreSQL connection
-	connStr := "postgres://" + db_user + ":" + db_password + "@localhost:" + db_port + "/" + db_name + "?sslmode=disable" // Update with your DB details
+	connStr := "postgres://" + db_user + ":" + db_password + "@localhost:" + db_port + "/" + db_name + "?sslmode=disable"
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatalf("Failed to connect to the database: %v", err)
 	}
 	defer db.Close()
 
-	// Initialize sqlc queries
 	dbQueries := database.New(db)
 
+	// Parse all templates
+	tmpl := template.Must(template.New("").ParseFiles(
+		"templates/layout.html",
+		"templates/index.html",
+		"templates/partials/book_card.html",
+		"templates/partials/book_details.html",
+		"templates/partials/book_list.html",
+		"templates/partials/search_results.html",
+	))
 	// Initialize handlers
-	ReadlistHandler := handlers.ReadlistHandler{
+	readlistHandler := handlers.ReadlistHandler{
 		DB:      db,
 		Queries: dbQueries,
+		Tmpl:    tmpl,
 	}
 
-	BookHandler := handlers.BookHandler{}
+	bookHandler := handlers.NewBookHandler(tmpl)
 
-	// HTTP routes
-    http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Welcome to the Book List App API!"))
-	})
+	// Static assets (e.g., htmx.min.js)
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
-	http.HandleFunc("/search", BookHandler.Search)
-	http.HandleFunc("/details", BookHandler.Details)
+	// Frontend HTML routes
+	http.HandleFunc("/", bookHandler.Index)
+	http.HandleFunc("/search", bookHandler.Search)
 
-	http.HandleFunc("/readlist/add", ReadlistHandler.AddToReadlist)
-	http.HandleFunc("/readlist", ReadlistHandler.GetReadlist)
+	// API routes
+	http.HandleFunc("/details", bookHandler.DetailsHandler)
+	http.HandleFunc("/readlist", readlistHandler.GetReadlist)
+	http.HandleFunc("/readlist/add", readlistHandler.AddToReadlist)
+	http.HandleFunc("/readlist/delete", readlistHandler.DeleteFromReadlist)
 
-	// Start server
-	log.Println("Server is running on port 8080...")
+
+	log.Println("🌐 Server is running on http://localhost:8080...")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

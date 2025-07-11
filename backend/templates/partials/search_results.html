@@ -1,0 +1,9 @@
+{{ define "partials/search_results.html" }}
+<div id="results" class="space-y-8">
+  {{ range . }} {{ template "partials/book_card.html" . }}
+  <hr />
+  {{ else }}
+  <p>No books found.</p>
+  {{ end }}
+</div>
+{{ end }}

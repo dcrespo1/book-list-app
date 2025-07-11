@@ -1,0 +1,15 @@
+{{ define "index.html" }} {{ template "layout.html" . }} {{ end }} {{ define "content" }}
+<h1>Book Search</h1>
+<button hx-get="/readlist" hx-target="#readlist-container" hx-swap="innerHTML">View your book list</button>
+
+<form hx-get="/search" hx-target="#results" hx-trigger="submit">
+  <input type="text" name="q" placeholder="Search books..." />
+  <button type="submit">Search</button>
+</form>
+
+<hr />
+
+<div id="results">
+  <div id="readlist-container"></div>
+</div>
+{{ end }}

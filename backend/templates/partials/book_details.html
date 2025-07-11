@@ -1,0 +1,24 @@
+{{ define "partials/book_details.html" }}
+<div class="mt-4 border-t pt-4" id="details-{{ .WorkID }}">
+  <h2 class="text-2xl font-bold mb-2">{{ .Title }}</h2>
+
+  {{ if .CoverArtURL }}
+  <div class="mb-2">
+    <img src="{{ .CoverArtURL }}" alt="Cover for {{ .Title }}" class="max-w-[200px]" />
+  </div>
+  {{ end }} {{ if .Description }}
+  <p class="mb-2"><strong>Description:</strong> {{ .Description }}</p>
+  {{ end }} {{ if .Subjects }}
+  <p class="mb-2"><strong>Subjects:</strong> {{ range $i, $s := .Subjects }}{{ if $i }}, {{ end }}{{ $s }}{{ end }}</p>
+  {{ end }} {{ if .Links }}
+  <p class="mb-2"><strong>Links:</strong></p>
+  <ul class="list-disc list-inside">
+    {{ range .Links }}
+    <li><a href="{{ . }}" target="_blank" class="text-blue-500 hover:underline">{{ . }}</a></li>
+    {{ end }}
+  </ul>
+  {{ end }}
+
+  <p class="text-sm text-gray-600 mt-2">Work ID: {{ .WorkID }}</p>
+</div>
+{{ end }}
