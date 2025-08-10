@@ -19,3 +19,8 @@ tasks:
     cmds:
       - docker compose down -v
       - sudo rm -rf ../utils/_data
+  start:
+    desc: "Start Air Server for local testing"
+    dir: backend
+    cmds:
+      - cd ../backend && $(go env GOPATH)/bin/air

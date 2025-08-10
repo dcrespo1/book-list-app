@@ -21,7 +21,7 @@ type BookDetails struct {
 	Title       string      `json:"title"`
 	Description interface{} `json:"description"`
 	Subjects    []string    `json:"subjects"`
-	Links       []string    `json:"links"`
+	Links       []Link    `json:"links"`
 	CoverArtURL string      `json:"cover_art_link"`
 }
 type Link struct {
@@ -69,7 +69,7 @@ func (h *BookHandler) SearchBooks(query string) ([]Book, error) {
 	baseurl := "https://openlibrary.org/search.json"
 	reqURL, err := url.Parse(baseurl)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse base URL: %d", err)
+		return nil, fmt.Errorf("failed to parse base URL: %w", err)
 	}
 
 	queryParams := url.Values{}
@@ -148,10 +148,7 @@ func (h *BookHandler) GetBookDetails(workID string) (BookDetails, error) {
 		Description interface{} `json:"description"`
 		Subjects    []string    `json:"subjects"`
 		Covers      []int       `json:"covers"`
-		Links       []struct {
-			Title string `json:"title"`
-			URL   string `json:"url"`
-		} `json:"links"`
+		Links       []Link       `json:"links"`
 	}
 
 	if err := json.Unmarshal(body, &rawDetails); err != nil {
@@ -183,8 +180,11 @@ func (h *BookHandler) GetBookDetails(workID string) (BookDetails, error) {
 	}
 
 	for _, link := range rawDetails.Links {
-		bookDetails.Links = append(bookDetails.Links, link.URL)
-	}
+	bookDetails.Links = append(bookDetails.Links, Link{
+		Title: link.Title,
+		URL:   link.URL,
+	})
+}
 
 	return bookDetails, nil
 }
