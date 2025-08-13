@@ -1,4 +1,4 @@
 .envrc
-.env.local
+.env
 /utils/_data
 /backend/tmp

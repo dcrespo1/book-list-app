@@ -1,0 +1,30 @@
+{
+  "name": "Book API Dev",
+  "build": { "dockerfile": "Dockerfile" },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+    "ghcr.io/devcontainers/features/common-utils:2": {}
+  },
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "remoteUser": "vscode",
+  "containerEnv": { "PGHOST": "host.docker.internal" },
+
+  "postCreateCommand": "bash -lc 'set -euo pipefail; cd ${containerWorkspaceFolder} && ( test -f .envrc || cp .envrc.example .envrc ) && direnv allow && direnv exec . task init'",
+  "postStartCommand": "bash -lc 'set -euo pipefail; cd ${containerWorkspaceFolder} && direnv exec . task db:up && direnv exec . task db:wait && direnv exec . task doctor'",
+
+
+  "forwardPorts": [8080, 5432],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go",
+        "ms-azuretools.vscode-docker",
+        "foxundermoon.shell-format",
+        "EditorConfig.EditorConfig",
+        "mkhl.direnv"
+      ],
+      "settings": { "go.toolsManagement.autoUpdate": true }
+    }
+  },
+  "hostRequirements": { "cpus": 2, "memory": "4gb" }
+}
