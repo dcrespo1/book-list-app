@@ -5,16 +5,39 @@
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
     "ghcr.io/devcontainers/features/common-utils:2": {}
   },
+
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "remoteUser": "vscode",
+
+  // --- ✅ Container Environment ---
   "containerEnv": {
+    // PostgreSQL access (Docker-outside-of-Docker setup)
     "PGHOST": "host.docker.internal",
-    "SSH_PUB_KEY": "${localEnv:SSH_PUB_KEY}"
+    "POSTGRES_HOST": "host.docker.internal",
+
+    // Go toolchain paths (user-scoped, writable)
+    "GOPATH": "/home/vscode/go",
+    "GOMODCACHE": "/home/vscode/go/pkg/mod",
+    "GOBIN": "/home/vscode/.local/bin"
   },
 
-  "postCreateCommand": "bash -lc 'set -euo pipefail; cd ${containerWorkspaceFolder} && ( test -f .envrc || cp .envrc.example .envrc ) && direnv allow && direnv exec . task init'",
+  // --- ✅ Extend PATH so VS Code & shell find installed Go tools ---
+"remoteEnv": {
+  "PATH": "/usr/local/go/bin:/home/vscode/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+},
+"runArgs": [
+  "--network=bookshelf_default"
+],
+
+  // --- ✅ Post-create: fix perms + initialize project ---
+"postCreateCommand": "/bin/bash .devcontainer/postCreate.sh",
+  // --- ✅ Post-start: start DB and validate toolchain ---
   "postStartCommand": "bash -lc 'cd ${containerWorkspaceFolder} && task db:up && task db:wait && task doctor && mkdir -p ~/.ssh && chmod 700 ~/.ssh && chmod 600 ~/.ssh/id_* 2>/dev/null || true && chmod 644 ~/.ssh/*.pub 2>/dev/null || true && chmod 644 ~/.ssh/known_hosts 2>/dev/null || true'",
+
+  // --- Port forwarding for backend & DB ---
   "forwardPorts": [8080, 5432],
+
+  // --- VS Code customization ---
   "customizations": {
     "vscode": {
       "extensions": [
@@ -24,13 +47,22 @@
         "EditorConfig.EditorConfig",
         "mkhl.direnv"
       ],
-      "settings": { "go.toolsManagement.autoUpdate": true }
+      "settings": {
+        // VS Code Go extension: auto-manage tools
+        "go.toolsManagement.autoUpdate": true,
+        // ✅ Direct Go tools to user bin (avoids /usr/local/bin perms)
+        "go.toolsGopath": "/home/vscode/.local/bin"
+      }
     }
   },
+
+  // --- Dev host resource requirements ---
   "hostRequirements": { "cpus": 2, "memory": "4gb" },
+
+  // --- Mount SSH keys (for private module access, git clone, etc.) ---
   "mounts": [
-  "source=${env:HOME}/.ssh/id_ed25519,target=/home/vscode/.ssh/id_ed25519,type=bind,consistency=cached",
-  "source=${env:HOME}/.ssh/id_ed25519.pub,target=/home/vscode/.ssh/id_ed25519.pub,type=bind,consistency=cached",
-  "source=${env:HOME}/.ssh/known_hosts,target=/home/vscode/.ssh/known_hosts,type=bind,consistency=cached"
-]
+    "source=${env:HOME}/.ssh/id_ed25519,target=/home/vscode/.ssh/id_ed25519,type=bind,consistency=cached",
+    "source=${env:HOME}/.ssh/id_ed25519.pub,target=/home/vscode/.ssh/id_ed25519.pub,type=bind,consistency=cached",
+    "source=${env:HOME}/.ssh/known_hosts,target=/home/vscode/.ssh/known_hosts,type=bind,consistency=cached"
+  ]
 }
