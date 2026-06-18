@@ -8,7 +8,10 @@ import (
 	"net/url"
 )
 
-type BookHandler struct{}
+type BookHandler struct {
+	// baseURL overrides the Open Library base URL. Leave empty for production.
+	baseURL string
+}
 
 type Book struct {
 	Title       string   `json:"title"`
@@ -18,63 +21,64 @@ type Book struct {
 }
 
 type BookDetails struct {
-	Title       string      `json:"title"`
-	Description interface{} `json:"description"`
-	Subjects    []string    `json:"subjects"`
-	Links       []Link    `json:"links"`
-	CoverArtURL string      `json:"cover_art_link"`
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
+	Subjects    []string `json:"subjects"`
+	Links       []Link   `json:"links"`
+	CoverArtURL string   `json:"cover_art_link"`
 }
+
 type Link struct {
 	Title string `json:"title"`
 	URL   string `json:"url"`
 }
 
+func (h *BookHandler) openLibraryURL() string {
+	if h.baseURL != "" {
+		return h.baseURL
+	}
+	return "https://openlibrary.org"
+}
 
 func (h *BookHandler) Search(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	if query == "" {
-		http.Error(w, "Missing query parameter 'q'", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "missing query parameter 'q'")
 		return
 	}
 
 	books, err := h.SearchBooks(query)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		WriteError(w, http.StatusInternalServerError, "failed to search books")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(books)
+	WriteJSON(w, http.StatusOK, books)
 }
 
 func (h *BookHandler) Details(w http.ResponseWriter, r *http.Request) {
 	workID := r.URL.Query().Get("id")
 	if workID == "" {
-		http.Error(w, "Missing query parameter 'id'", http.StatusBadRequest)
+		WriteError(w, http.StatusBadRequest, "missing query parameter 'id'")
 		return
 	}
 
 	details, err := h.GetBookDetails(workID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		WriteError(w, http.StatusInternalServerError, "failed to fetch book details")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(details)
+	WriteJSON(w, http.StatusOK, details)
 }
 
-
 func (h *BookHandler) SearchBooks(query string) ([]Book, error) {
-	baseurl := "https://openlibrary.org/search.json"
-	reqURL, err := url.Parse(baseurl)
+	reqURL, err := url.Parse(h.openLibraryURL() + "/search.json")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse base URL: %w", err)
 	}
 
-	queryParams := url.Values{}
-	queryParams.Set("q", query)
-	reqURL.RawQuery = queryParams.Encode()
+	reqURL.RawQuery = url.Values{"q": {query}}.Encode()
 
 	resp, err := http.Get(reqURL.String())
 	if err != nil {
@@ -83,7 +87,7 @@ func (h *BookHandler) SearchBooks(query string) ([]Book, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected response code: %d\n url attempted: %s", resp.StatusCode, reqURL.String())
+		return nil, fmt.Errorf("unexpected response code: %d", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -96,7 +100,7 @@ func (h *BookHandler) SearchBooks(query string) ([]Book, error) {
 			Title       string   `json:"title"`
 			AuthorName  []string `json:"author_name"`
 			PublishYear int      `json:"first_publish_year"`
-			Key         string   `json:"key"` // This contains "/works/{work_id}"
+			Key         string   `json:"key"`
 		} `json:"docs"`
 	}
 
@@ -104,14 +108,12 @@ func (h *BookHandler) SearchBooks(query string) ([]Book, error) {
 		return nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}
 
-	books := []Book{}
+	books := make([]Book, 0, len(result.Docs))
 	for _, doc := range result.Docs {
-		// Extract WorkID by trimming the "/works/" prefix
 		workID := ""
 		if len(doc.Key) > 7 {
 			workID = doc.Key[7:]
 		}
-
 		books = append(books, Book{
 			Title:       doc.Title,
 			Authors:     doc.AuthorName,
@@ -124,10 +126,9 @@ func (h *BookHandler) SearchBooks(query string) ([]Book, error) {
 }
 
 func (h *BookHandler) GetBookDetails(workID string) (BookDetails, error) {
-	// Build the correct URL without using url.Values
-	url := fmt.Sprintf("https://openlibrary.org/works/%s.json", workID)
+	reqURL := fmt.Sprintf("%s/works/%s.json", h.openLibraryURL(), workID)
 
-	resp, err := http.Get(url)
+	resp, err := http.Get(reqURL)
 	if err != nil {
 		return BookDetails{}, fmt.Errorf("failed to fetch book details: %w", err)
 	}
@@ -142,49 +143,38 @@ func (h *BookHandler) GetBookDetails(workID string) (BookDetails, error) {
 		return BookDetails{}, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	// Define a struct to capture the raw response
-	var rawDetails struct {
+	var raw struct {
 		Title       string      `json:"title"`
-		Description interface{} `json:"description"`
+		Description any `json:"description"`
 		Subjects    []string    `json:"subjects"`
 		Covers      []int       `json:"covers"`
-		Links       []Link       `json:"links"`
+		Links       []Link      `json:"links"`
 	}
 
-	if err := json.Unmarshal(body, &rawDetails); err != nil {
+	if err := json.Unmarshal(body, &raw); err != nil {
 		return BookDetails{}, fmt.Errorf("failed to parse JSON: %w", err)
 	}
 
-	// Extract description
 	var description string
-	switch v := rawDetails.Description.(type) {
+	switch v := raw.Description.(type) {
 	case string:
 		description = v
-	case map[string]interface{}:
+	case map[string]any:
 		if val, ok := v["value"].(string); ok {
 			description = val
 		}
 	}
 
 	var coverArtURL string
-	if len(rawDetails.Covers) > 0 {
-		coverArtURL = fmt.Sprintf("https://covers.openlibrary.org/b/id/%d-L.jpg", rawDetails.Covers[0])
+	if len(raw.Covers) > 0 {
+		coverArtURL = fmt.Sprintf("https://covers.openlibrary.org/b/id/%d-L.jpg", raw.Covers[0])
 	}
 
-	// Build final struct
-	bookDetails := BookDetails{
-		Title:       rawDetails.Title,
+	return BookDetails{
+		Title:       raw.Title,
 		Description: description,
-		Subjects:    rawDetails.Subjects,
+		Subjects:    raw.Subjects,
+		Links:       raw.Links,
 		CoverArtURL: coverArtURL,
-	}
-
-	for _, link := range rawDetails.Links {
-	bookDetails.Links = append(bookDetails.Links, Link{
-		Title: link.Title,
-		URL:   link.URL,
-	})
-}
-
-	return bookDetails, nil
+	}, nil
 }

@@ -10,10 +10,15 @@ import (
 )
 
 const deleteBookByID = `-- name: DeleteBookByID :exec
-DELETE FROM books WHERE id = $1
+DELETE FROM books WHERE id = $1 AND user_id = $2
 `
 
-func (q *Queries) DeleteBookByID(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteBookByID, id)
+type DeleteBookByIDParams struct {
+	ID     int32
+	UserID string
+}
+
+func (q *Queries) DeleteBookByID(ctx context.Context, arg DeleteBookByIDParams) error {
+	_, err := q.db.ExecContext(ctx, deleteBookByID, arg.ID, arg.UserID)
 	return err
 }

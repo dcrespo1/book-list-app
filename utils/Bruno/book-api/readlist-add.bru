@@ -1,11 +1,22 @@
 meta {
-  name: /readlist/add
+  name: POST /readlist
   type: http
   seq: 6
 }
 
 post {
-  url: {{base_url}}/readlist/add
-  body: none
+  url: {{base_url}}/readlist
+  body: json
   auth: inherit
+}
+
+body:json {
+  {
+    "title": "Harry Potter and the Sorcerer's Stone",
+    "authors": "J.K. Rowling",
+    "work_id": "OL82563W",
+    "subjects": "Fantasy, Magic",
+    "description": "A young boy discovers he is a wizard.",
+    "cover_art_url": "https://covers.openlibrary.org/b/id/8267883-L.jpg"
+  }
 }

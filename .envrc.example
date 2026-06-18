@@ -14,4 +14,10 @@ export DB_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}
 export PORT=${PORT:=8080}
 export ENV=${ENV:=development}
 
-
+# Keycloak / Auth
+# KEYCLOAK_ISSUER: the iss claim in tokens; what Bruno/browser uses to get tokens.
+export KEYCLOAK_ISSUER=${KEYCLOAK_ISSUER:=http://localhost:8180/realms/booklist}
+# KEYCLOAK_DISCOVERY_URL: where the server fetches OIDC config.
+# Inside the devcontainer this should be http://keycloak:8080/realms/booklist
+# (set via devcontainer.json containerEnv). Outside, defaults to KEYCLOAK_ISSUER.
+export KEYCLOAK_DISCOVERY_URL=${KEYCLOAK_DISCOVERY_URL:=$KEYCLOAK_ISSUER}

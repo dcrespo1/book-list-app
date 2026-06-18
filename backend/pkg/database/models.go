@@ -16,4 +16,8 @@ type Book struct {
 	Description sql.NullString
 	CoverArtUrl sql.NullString
 	WorkID      string
+	UserID      string
+	Status      string
+	Rating      sql.NullInt32
+	Notes       sql.NullString
 }

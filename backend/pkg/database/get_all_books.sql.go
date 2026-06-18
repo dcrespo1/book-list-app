@@ -10,11 +10,11 @@ import (
 )
 
 const getAllBooks = `-- name: GetAllBooks :many
-SELECT id, title, authors, subjects, description, cover_art_url, work_id FROM books
+SELECT id, title, authors, subjects, description, cover_art_url, work_id, user_id, status, rating, notes FROM books WHERE user_id = $1 ORDER BY id DESC
 `
 
-func (q *Queries) GetAllBooks(ctx context.Context) ([]Book, error) {
-	rows, err := q.db.QueryContext(ctx, getAllBooks)
+func (q *Queries) GetAllBooks(ctx context.Context, userID string) ([]Book, error) {
+	rows, err := q.db.QueryContext(ctx, getAllBooks, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -30,6 +30,10 @@ func (q *Queries) GetAllBooks(ctx context.Context) ([]Book, error) {
 			&i.Description,
 			&i.CoverArtUrl,
 			&i.WorkID,
+			&i.UserID,
+			&i.Status,
+			&i.Rating,
+			&i.Notes,
 		); err != nil {
 			return nil, err
 		}

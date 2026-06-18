@@ -10,11 +10,16 @@ import (
 )
 
 const getBookByWorkID = `-- name: GetBookByWorkID :one
-SELECT id, title, authors, subjects, description, cover_art_url, work_id FROM books WHERE work_id = $1
+SELECT id, title, authors, subjects, description, cover_art_url, work_id, user_id, status, rating, notes FROM books WHERE work_id = $1 AND user_id = $2
 `
 
-func (q *Queries) GetBookByWorkID(ctx context.Context, workID string) (Book, error) {
-	row := q.db.QueryRowContext(ctx, getBookByWorkID, workID)
+type GetBookByWorkIDParams struct {
+	WorkID string
+	UserID string
+}
+
+func (q *Queries) GetBookByWorkID(ctx context.Context, arg GetBookByWorkIDParams) (Book, error) {
+	row := q.db.QueryRowContext(ctx, getBookByWorkID, arg.WorkID, arg.UserID)
 	var i Book
 	err := row.Scan(
 		&i.ID,
@@ -24,6 +29,10 @@ func (q *Queries) GetBookByWorkID(ctx context.Context, workID string) (Book, err
 		&i.Description,
 		&i.CoverArtUrl,
 		&i.WorkID,
+		&i.UserID,
+		&i.Status,
+		&i.Rating,
+		&i.Notes,
 	)
 	return i, err
 }

@@ -1,0 +1,23 @@
+meta {
+  name: PATCH /readlist/{id}
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{base_url}}/readlist/1
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+body:json {
+  {
+    "status": "reading",
+    "rating": 4,
+    "notes": "Really enjoying this so far"
+  }
+}
