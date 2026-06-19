@@ -21,7 +21,7 @@ type BookStore interface {
 	GetBookByWorkID(ctx context.Context, arg database.GetBookByWorkIDParams) (database.Book, error)
 	GetBookByID(ctx context.Context, arg database.GetBookByIDParams) (database.Book, error)
 	UpdateBook(ctx context.Context, arg database.UpdateBookParams) (database.Book, error)
-	DeleteBookByID(ctx context.Context, arg database.DeleteBookByIDParams) error
+	DeleteBookByID(ctx context.Context, arg database.DeleteBookByIDParams) (int64, error)
 }
 
 func toNullString(s *string) sql.NullString {
@@ -32,7 +32,6 @@ func toNullString(s *string) sql.NullString {
 }
 
 type ReadlistHandler struct {
-	DB      *sql.DB
 	Queries BookStore
 }
 
@@ -99,7 +98,11 @@ func (h *ReadlistHandler) GetReadlist(w http.ResponseWriter, r *http.Request) {
 	if books == nil {
 		books = []database.Book{}
 	}
-	WriteJSON(w, http.StatusOK, books)
+	out := make([]BookResponse, len(books))
+	for i, b := range books {
+		out[i] = toBookResponse(b)
+	}
+	WriteJSON(w, http.StatusOK, out)
 }
 
 func (h *ReadlistHandler) GetByWorkID(w http.ResponseWriter, r *http.Request) {
@@ -122,7 +125,7 @@ func (h *ReadlistHandler) GetByWorkID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	WriteJSON(w, http.StatusOK, book)
+	WriteJSON(w, http.StatusOK, toBookResponse(book))
 }
 
 func (h *ReadlistHandler) PatchReadlist(w http.ResponseWriter, r *http.Request) {
@@ -198,7 +201,7 @@ func (h *ReadlistHandler) PatchReadlist(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	WriteJSON(w, http.StatusOK, updated)
+	WriteJSON(w, http.StatusOK, toBookResponse(updated))
 }
 
 func (h *ReadlistHandler) DeleteFromReadlist(w http.ResponseWriter, r *http.Request) {
@@ -214,11 +217,16 @@ func (h *ReadlistHandler) DeleteFromReadlist(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := h.Queries.DeleteBookByID(r.Context(), database.DeleteBookByIDParams{
+	n, err := h.Queries.DeleteBookByID(r.Context(), database.DeleteBookByIDParams{
 		ID:     int32(id),
 		UserID: sub,
-	}); err != nil {
+	})
+	if err != nil {
 		WriteError(w, http.StatusInternalServerError, "failed to delete book")
+		return
+	}
+	if n == 0 {
+		WriteError(w, http.StatusNotFound, "book not found")
 		return
 	}
 

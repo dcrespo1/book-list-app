@@ -9,7 +9,7 @@ import (
 	"context"
 )
 
-const deleteBookByID = `-- name: DeleteBookByID :exec
+const deleteBookByID = `-- name: DeleteBookByID :execrows
 DELETE FROM books WHERE id = $1 AND user_id = $2
 `
 
@@ -18,7 +18,10 @@ type DeleteBookByIDParams struct {
 	UserID string
 }
 
-func (q *Queries) DeleteBookByID(ctx context.Context, arg DeleteBookByIDParams) error {
-	_, err := q.db.ExecContext(ctx, deleteBookByID, arg.ID, arg.UserID)
-	return err
+func (q *Queries) DeleteBookByID(ctx context.Context, arg DeleteBookByIDParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteBookByID, arg.ID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/dcrespo1/book-list-app/pkg/database"
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/coreos/go-oidc/v3/oidc"
 	_ "github.com/lib/pq"
 )
@@ -94,10 +95,15 @@ func main() {
 	// --- Handlers ---
 	queries := database.New(db)
 	bookHandler := &handlers.BookHandler{}
-	readlistHandler := &handlers.ReadlistHandler{DB: db, Queries: queries}
+	readlistHandler := &handlers.ReadlistHandler{Queries: queries}
 
 	// --- Router ---
 	r := chi.NewRouter()
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins: []string{"http://localhost:5173"},
+		AllowedMethods: []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
+		AllowedHeaders: []string{"Authorization", "Content-Type"},
+	}))
 	r.Use(chimw.RequestID)
 	r.Use(chimw.Logger)
 	r.Use(chimw.Recoverer)

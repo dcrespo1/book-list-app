@@ -66,8 +66,16 @@ func (f *fakeStore) UpdateBook(_ context.Context, _ database.UpdateBookParams) (
 	return f.updatedBook, f.updateErr
 }
 
-func (f *fakeStore) DeleteBookByID(_ context.Context, _ database.DeleteBookByIDParams) error {
-	return f.deleteErr
+func (f *fakeStore) DeleteBookByID(_ context.Context, arg database.DeleteBookByIDParams) (int64, error) {
+	if f.deleteErr != nil {
+		return 0, f.deleteErr
+	}
+	for _, b := range f.books {
+		if b.ID == arg.ID && b.UserID == arg.UserID {
+			return 1, nil
+		}
+	}
+	return 0, nil
 }
 
 func newHandler(store BookStore) *ReadlistHandler {
@@ -185,7 +193,7 @@ func TestGetReadlist_ReturnsSavedBooks(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Errorf("status: got %d, want %d", w.Code, http.StatusOK)
 	}
-	var got []database.Book
+	var got []BookResponse
 	json.NewDecoder(w.Body).Decode(&got)
 	if len(got) != 1 || got[0].Title != "Dune" {
 		t.Errorf("unexpected books: %v", got)
@@ -203,7 +211,7 @@ func TestGetReadlist_EmptyReturnsArray(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Errorf("status: got %d, want %d", w.Code, http.StatusOK)
 	}
-	var got []database.Book
+	var got []BookResponse
 	json.NewDecoder(w.Body).Decode(&got)
 	if got == nil {
 		t.Error("expected empty JSON array [], got null")
@@ -237,7 +245,7 @@ func TestGetByWorkID_Found(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Errorf("status: got %d, want %d", w.Code, http.StatusOK)
 	}
-	var got database.Book
+	var got BookResponse
 	json.NewDecoder(w.Body).Decode(&got)
 	if got.WorkID != "OL12345W" {
 		t.Errorf("work_id: got %q, want %q", got.WorkID, "OL12345W")
@@ -293,7 +301,7 @@ func TestPatchReadlist_UpdateStatus(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Errorf("status: got %d, want %d", w.Code, http.StatusOK)
 	}
-	var got database.Book
+	var got BookResponse
 	json.NewDecoder(w.Body).Decode(&got)
 	if got.Status != "reading" {
 		t.Errorf("status field: got %q, want %q", got.Status, "reading")
@@ -375,7 +383,7 @@ func TestPatchReadlist_DBError(t *testing.T) {
 // --- DeleteFromReadlist ---
 
 func TestDeleteFromReadlist_Success(t *testing.T) {
-	h := newHandler(&fakeStore{})
+	h := newHandler(&fakeStore{books: seedBook()})
 
 	w := httptest.NewRecorder()
 	r := withSub(withChiParam(httptest.NewRequest(http.MethodDelete, "/readlist/1", nil), "id", "1"), testSub)
@@ -383,6 +391,18 @@ func TestDeleteFromReadlist_Success(t *testing.T) {
 
 	if w.Code != http.StatusNoContent {
 		t.Errorf("status: got %d, want %d", w.Code, http.StatusNoContent)
+	}
+}
+
+func TestDeleteFromReadlist_NotFound(t *testing.T) {
+	h := newHandler(&fakeStore{}) // empty store — no matching row
+
+	w := httptest.NewRecorder()
+	r := withSub(withChiParam(httptest.NewRequest(http.MethodDelete, "/readlist/99", nil), "id", "99"), testSub)
+	h.DeleteFromReadlist(w, r)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("status: got %d, want %d", w.Code, http.StatusNotFound)
 	}
 }
 
